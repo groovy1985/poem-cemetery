@@ -1,0 +1,33 @@
+name: Generate Daily Kuyou Poem
+
+on:
+  schedule:
+    - cron: "59 14 * * *"  # JST 23:59（UTC換算）
+  workflow_dispatch:       # 手動実行も可能にしておく
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: pip install --upgrade pip
+
+      - name: Run poem generator
+        run: python generate_kuyou.py
+
+      - name: Commit and push
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add *.md
+          git commit -m "add: auto-generated kuyou poem for $(date +'%Y-%m-%d')" || echo "No changes to commit"
+          git push
