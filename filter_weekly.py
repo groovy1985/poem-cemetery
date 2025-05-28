@@ -10,7 +10,9 @@ today = datetime.date.today()
 start_date = today - datetime.timedelta(days=7)
 
 # 出力先ディレクトリ作成（noteまとめ保存）
-os.makedirs(output_dir, exist_ok=True)
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+
 
 # ログディレクトリが存在しない場合はスキップ
 if not os.path.exists(logs_dir):
