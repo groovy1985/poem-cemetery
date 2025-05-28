@@ -1,15 +1,15 @@
 # 全体的に output フォルダ配下を無視
 output/*
 
-# logs/ フォルダとその中の .md ファイルを追跡
+# logs フォルダ内だけは追跡
 !output/logs/
 !output/logs/*.md
+!output/logs/*.json
 
-# note/ フォルダとその中の .md ファイルを追跡
+# note フォルダ内だけは追跡
 !output/note/
 !output/note/*.md
 
-# poems/ フォルダとその中の .md ファイルを追跡 ←追加
+# poems フォルダ内だけは追跡 ←←← これが必要
 !output/poems/
 !output/poems/*.md
-
