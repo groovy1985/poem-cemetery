@@ -7,10 +7,12 @@ from openai import OpenAI
 # OpenAI APIキー
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# 出力ファイル名の設定
+# 日付と出力ファイル名の設定
 today = datetime.date.today()
-filename = f"output/{today.strftime('%Y-%m-%d')}.md"
-json_filename = f"output/{today.strftime('%Y-%m-%d')}_eval.json"
+output_dir = "output/logs"
+os.makedirs(output_dir, exist_ok=True)
+filename = os.path.join(output_dir, f"{today.strftime('%Y-%m-%d')}.md")
+json_filename = os.path.join(output_dir, f"{today.strftime('%Y-%m-%d')}_eval.json")
 
 # ランダムな死者数を生成
 human_deaths = random.randint(3, 8)
@@ -93,7 +95,7 @@ base_date = datetime.date(2025, 5, 5)
 grave_number = (today - base_date).days + 1
 title_line = poem.splitlines()[0]
 
-# 出力用フォーマット
+# 出力フォーマット
 content = f"""⸻
 
 供養詩｜{today.strftime('%Y年%m月%d日')}
@@ -126,8 +128,7 @@ content = f"""⸻
 ⸻
 """
 
-# 出力フォルダの作成と保存
-os.makedirs("output", exist_ok=True)
+# ファイル出力
 with open(filename, "w", encoding="utf-8") as f:
     f.write(content)
 
@@ -140,3 +141,4 @@ with open(json_filename, "w", encoding="utf-8") as jf:
         "details": kz_detail,
         "dialogue": dialogue
     }, jf, ensure_ascii=False, indent=2)
+
