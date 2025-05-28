@@ -35,15 +35,8 @@ jobs:
 
       - name: Commit and push
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          FILES=$(find output/logs -name '*.md')
-          if [ -n "$FILES" ]; then
-            git add $FILES
-            git commit -m "add: auto-generated kuyou poem for $(date +'%Y-%m-%d')" || echo "No changes to commit"
-            git push
-          else
-            echo "No markdown files to commit"
-          fi
-            you poem for $(date +'%Y-%m-%d')" || echo "No changes to commit"
-          git push
+           git config --global user.name "github-actions[bot]"
+           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+           git add output/logs/*.md || echo "No markdown files to commit"
+           git commit -m "add: auto-generated poem for $(date +%Y-%m-%d)" || echo "No changes to commit"
+           git push
