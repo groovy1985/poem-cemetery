@@ -1,6 +1,10 @@
-# 全体的に output フォルダは無視
+# 全体的に output フォルダ配下を無視
 output/*
 
-# ただし logs/ フォルダとその中の .md ファイルだけは追跡対象にする
+# logs/ フォルダとその中の .md ファイルを追跡
 !output/logs/
 !output/logs/*.md
+
+# note/ フォルダとその中の .md ファイルも追跡
+!output/note/
+!output/note/*.md
