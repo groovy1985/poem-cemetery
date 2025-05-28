@@ -28,11 +28,15 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python main.py
 
+      - name: Debug output (optional)
+        run: |
+          echo "Listing output/logs/"
+          ls -la output/logs || echo "No output/logs directory found"
 
       - name: Commit and push
         run: |
-              git config --global user.name "github-actions[bot]"
-              git config --global user.email "github-actions[bot]@users.noreply.github.com"
-              git add *.md
-              git commit -m "add: auto-generated kuyou poem for $(date +'%Y-%m-%d')" || echo "No changes to commit"
-              git push
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add output/logs/*.md
+          git commit -m "add: auto-generated kuyou poem for $(date +'%Y-%m-%d')" || echo "No changes to commit"
+          git push
