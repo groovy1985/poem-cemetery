@@ -1,0 +1,6 @@
+# 全体的に output フォルダは無視
+output/*
+
+# ただし logs/ フォルダとその中の .md ファイルだけは追跡対象にする
+!output/logs/
+!output/logs/*.md
