@@ -141,4 +141,3 @@ with open(json_filename, "w", encoding="utf-8") as jf:
         "details": kz_detail,
         "dialogue": dialogue
     }, jf, ensure_ascii=False, indent=2)
-
