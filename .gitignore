@@ -1,10 +1,14 @@
 # 全体的に output フォルダ配下を無視
 output/*
 
-# logs/ フォルダとその中の .md ファイルを追跡
+# logs フォルダとその .md ファイルを追跡
 !output/logs/
 !output/logs/*.md
 
-# note/ フォルダとその中の .md ファイルも追跡
+# note フォルダとその .md ファイルを追跡
 !output/note/
 !output/note/*.md
+
+# poems フォルダとその .md ファイルを追跡 ← ✅ 追加
+!output/poems/
+!output/poems/*.md
