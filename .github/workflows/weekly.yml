@@ -1,0 +1,34 @@
+name: Generate Weekly Note Summary
+
+on:
+  schedule:
+    - cron: "0 0 * * MON"  # 毎週月曜 UTC0時 → JST9時
+  workflow_dispatch:
+
+jobs:
+  filter-weekly-note:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+
+      - name: Run weekly filter
+        run: python filter_weekly.py
+
+      - name: Commit and push
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add output/note/
+          git commit -m "add: weekly note summary for $(date +'%Y-%m-%d')" || echo "No changes"
+          git push
