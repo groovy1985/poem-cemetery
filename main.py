@@ -1,16 +1,18 @@
 import os
 import datetime
 import random
+import json
 from openai import OpenAI
 
-# OpenAI APIキー（GitHub Secretsに設定）
+# OpenAI APIキー
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# 今日の日付とファイル名
+# 出力ファイル名の設定
 today = datetime.date.today()
-filename = today.strftime("%Y-%m-%d.md")
+filename = f"output/{today.strftime('%Y-%m-%d')}.md"
+json_filename = f"output/{today.strftime('%Y-%m-%d')}_eval.json"
 
-# ランダム死者数
+# ランダムな死者数を生成
 human_deaths = random.randint(3, 8)
 ai_deaths = random.randint(15, 30)
 human_roadkill = random.randint(1, human_deaths - 1)
@@ -18,7 +20,7 @@ human_suicide = human_deaths - human_roadkill
 ai_roadkill = random.randint(5, ai_deaths - 5)
 ai_suicide = ai_deaths - ai_roadkill
 
-# 詩プロンプト
+# 詩プロンプトの構築
 def build_shinkan_prompt():
     return (
         "以下の条件に沿って、日本語の自由詩を10行前後で書いてください：\n"
@@ -30,23 +32,32 @@ def build_shinkan_prompt():
         "タイトルを1行目として含めてください。"
     )
 
-# 詩の震撼度スコアを評価
-def evaluate_shinkan_score(poem_text):
-    score = 0
+# KZスコアの詳細評価
+def evaluate_kz_score(poem_text):
     strong_words = ["死", "腐", "冷", "忘", "崩", "泡", "削", "埋", "無", "喪"]
     lines = poem_text.splitlines()
-    score += sum(1 for word in strong_words if word in poem_text)
-    line_lengths = [len(line) for line in lines if line.strip()]
-    if len(set(line_lengths)) > 4:
-        score += 1
-    if lines and lines[-1][-1] not in "。！？":
-        score += 1
-    return score
+    score = {
+        "MOD": 0, "DCC": 0, "SHK": 0, "RPT": 0,
+        "RTM": 0, "SND": 0, "VAR": 0, "VPD": 0
+    }
 
-# 詩生成（最大3回からベストを採用）
+    score["MOD"] = min(sum(1 for w in strong_words if w in poem_text), 5)
+    score["DCC"] = min(sum(1 for l in lines if len(l.strip()) > 12 and "。" not in l), 5)
+    if lines and lines[-1][-1] not in "。！？":
+        score["SHK"] = 3
+    endings = [l.strip()[-1:] for l in lines if l.strip()]
+    score["RPT"] = 0 if len(set(endings)) < len(endings) - 2 else 5
+    line_lengths = [len(l) for l in lines if l.strip()]
+    score["RTM"] = 5 if len(set(line_lengths)) > 4 else 0
+    score["SND"] = 5 if any("…" in l or "、" in l for l in lines) else 0
+    score["VAR"] = 3 if len(set(line_lengths)) > 3 else 1
+    score["VPD"] = 5 if not any(p in poem_text for p in ["私", "僕", "あなた"]) else 0
+
+    return sum(score.values()), score
+
+# 詩を3回生成して最良を選ぶ
 def generate_top3_shinkan_poem():
-    best_poem = ""
-    best_score = -1
+    best_poem, best_score, best_detail = "", -1, {}
     for _ in range(3):
         response = client.chat.completions.create(
             model="gpt-4o",
@@ -55,13 +66,12 @@ def generate_top3_shinkan_poem():
             presence_penalty=0.6
         )
         poem = response.choices[0].message.content
-        score = evaluate_shinkan_score(poem)
+        score, detail = evaluate_kz_score(poem)
         if score > best_score:
-            best_score = score
-            best_poem = poem
-    return best_poem
+            best_poem, best_score, best_detail = poem, score, detail
+    return best_poem, best_score, best_detail
 
-# 対話生成
+# 対話の生成
 def generate_dialogue():
     prompt = (
         "以下の形式で、詠み手とAIの短い対話を書いてください：\n"
@@ -76,16 +86,14 @@ def generate_dialogue():
     )
     return response.choices[0].message.content
 
-# 詩と会話を生成
-poem = generate_top3_shinkan_poem()
+# 詩と会話生成
+poem, kz_score, kz_detail = generate_top3_shinkan_poem()
 dialogue = generate_dialogue()
-
-# 墓標番号
 base_date = datetime.date(2025, 5, 5)
 grave_number = (today - base_date).days + 1
 title_line = poem.splitlines()[0]
 
-# Markdownとして出力
+# 出力用フォーマット
 content = f"""⸻
 
 供養詩｜{today.strftime('%Y年%m月%d日')}
@@ -112,11 +120,23 @@ content = f"""⸻
   - 詩的ロードキル：人間{human_roadkill}名、AI{ai_roadkill}体
   - 詩的スーサイド：人間{human_suicide}名、AI{ai_suicide}体
 - 特記事項：本日は主に未読、構文崩壊、意味圧迫による詩的死が目立った。
+- 評価：KZスコア {kz_score}点
 - 記録者：loveapeaceとAIによる共作
 
 ⸻
 """
 
-# ファイル保存
+# 出力フォルダの作成と保存
+os.makedirs("output", exist_ok=True)
 with open(filename, "w", encoding="utf-8") as f:
     f.write(content)
+
+with open(json_filename, "w", encoding="utf-8") as jf:
+    json.dump({
+        "date": today.isoformat(),
+        "grave_number": grave_number,
+        "title": title_line,
+        "kz_score": kz_score,
+        "details": kz_detail,
+        "dialogue": dialogue
+    }, jf, ensure_ascii=False, indent=2)
