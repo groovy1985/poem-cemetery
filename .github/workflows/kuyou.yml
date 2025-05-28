@@ -26,7 +26,8 @@ jobs:
       - name: Run poem generator
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: python generate_kuyou.py
+        run: python main.py
+
 
       - name: Commit and push
         run: |
