@@ -2,7 +2,7 @@ name: Generate Daily Kuyou Poem
 
 on:
   schedule:
-    - cron: "59 14 * * *"  # JST 23:59（UTC換算）
+    - cron: "59 14 * * *"  # JST 23:59
   workflow_dispatch:
 
 jobs:
@@ -39,9 +39,12 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-          # logs と poems の .md および .json を強制追加
           git add -f output/logs/*.md output/logs/*.json output/poems/*.md || echo "No files to commit"
-          
           git commit -m "add: auto-generated poem for $(date +%Y-%m-%d)" || echo "No changes to commit"
           git push
+
+      - name: Notify Poemkun Bot
+        run: |
+          curl -X POST https://your-server.com/webhook/poemkun \
+            -H "Content-Type: application/json" \
+            -d '{"repo": "poem-cemetery", "trigger": "daily-kuyou"}'
