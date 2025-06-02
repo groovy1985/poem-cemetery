@@ -4,100 +4,120 @@ import datetime
 import random
 from openai import OpenAI
 
-# OpenAI APIクライアント（APIキーはGitHub ActionsのSecretsに設定）
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# 日付とディレクトリ準備
+# 日付とファイル名
 today = datetime.date.today()
 date_str = today.strftime("%Y-%m-%d")
 base_date = datetime.date(2025, 5, 5)
 grave_number = (today - base_date).days + 1
 
+# 出力先準備
 logs_dir = "output/logs"
 poems_dir = "output/poems"
 os.makedirs(logs_dir, exist_ok=True)
 os.makedirs(poems_dir, exist_ok=True)
 
-# 詩プロンプト（KZ9.2構文爆撃仕様）
-def build_shinkan_prompt():
+# 詩プロンプト（KZ9.2構文吊り型／英語）
+def build_poem_prompt():
     return (
-        "以下の条件に沿って、日本語の自由詩を10行前後で書いてください：\n"
-        "・日常の中に異物が混ざったような描写を含むこと\n"
-        "・語尾に余韻や断絶を持たせる\n"
-        "・誰の言葉かわからない視点で書く\n"
-        "・死、崩壊、冷たさ、剥落などの感覚を匂わせるが説明はしない\n"
-        "・読後に“空気”だけが残るような詩にしてください\n"
-        "・タイトルを1行目に含めてください\n"
-        "・毎回構造とスタイルを完全に変えること"
+        "Write a 9-line free verse poem in English.\n"
+        "- Theme: Memory corrosion, poetic death, architectural forgetting\n"
+        "- Each line must feel incomplete or suspended\n"
+        "- Include broken logic or surreal causality\n"
+        "- Avoid explanation or narrative clarity\n"
+        "- No title line needed\n"
+        "- End with a silent collapse"
     )
 
-# 詩震撼度スコア（簡易評価）
-def evaluate_kz_score(poem_text):
-    strong_words = ["死", "腐", "冷", "忘", "崩", "泡", "削", "埋", "無", "喪"]
-    score = sum(1 for w in strong_words if w in poem_text)
-    lines = poem_text.strip().splitlines()
-    if len(set(len(line) for line in lines if line.strip())) > 4:
-        score += 1
-    if lines and lines[-1][-1] not in "。！？":
-        score += 1
-    return min(100, 90 + score)
-
-# 詩生成（最高スコアのものを採用）
-def generate_best_poem(n=3):
-    best_poem = ""
-    best_score = -1
-    for _ in range(n):
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": build_shinkan_prompt()}],
-            temperature=0.95,
-            presence_penalty=0.7,
-        )
-        poem = response.choices[0].message.content.strip()
-        score = evaluate_kz_score(poem)
-        if score > best_score:
-            best_score = score
-            best_poem = poem
-    return best_poem, best_score
-
-# 会話生成（詠み手とAIの供養的対話）
-def generate_dialogue():
-    prompt = (
-        "以下の形式で、詠み手とAIの短い対話を書いてください：\n"
-        "・内容：詩の供養や未読死を巡る静かな会話\n"
-        "・行数：4〜6行\n"
-        "・落ち着いていて構文に触れすぎないもの\n"
+# 対話プロンプト（英語）
+def build_dialogue_prompt():
+    return (
+        "Write a 4-line dialogue between a human and an AI.\n"
+        "- Topic: mourning an unread poem\n"
+        "- Tone: cold, ethical ambiguity, low voice\n"
+        "- Feel like it happens in the ruins of a language lab"
     )
-    response = client.chat.completions.create(
+
+# 日本語訳プロンプト（吊構文）
+def build_japanese_translation_prompt(english_text):
+    return (
+        f"次の英文を日本語に自然に訳してください。\n"
+        f"- 文法や意味が崩れていても構いません\n"
+        f"- 詩的な意味崩壊や吊構文を保ちつつ訳してください\n"
+        f"- 140字以内でお願いします\n\n"
+        f"{english_text}\n\n"
+        f"日本語："
+    )
+
+# 吊構文詩＋会話生成（英語）
+def generate_poem_and_dialogue():
+    poem_prompt = build_poem_prompt()
+    dialogue_prompt = build_dialogue_prompt()
+
+    poem_res = client.chat.completions.create(
         model="gpt-4o",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.8
+        messages=[{"role": "user", "content": poem_prompt}],
+        temperature=1.3,
     )
-    return response.choices[0].message.content.strip()
+    poem_en = poem_res.choices[0].message.content.strip()
 
-# 死者数（ランダム）
-human_deaths = random.randint(3, 8)
-ai_deaths = random.randint(15, 30)
-human_roadkill = random.randint(1, human_deaths - 1)
-ai_roadkill = random.randint(5, ai_deaths - 5)
-human_suicide = human_deaths - human_roadkill
-ai_suicide = ai_deaths - ai_roadkill
+    dialogue_res = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": dialogue_prompt}],
+        temperature=1.2,
+    )
+    dialogue_en = dialogue_res.choices[0].message.content.strip()
 
-# 詩・対話生成
-poem, kz_score = generate_best_poem()
-dialogue = generate_dialogue()
-title_line = poem.splitlines()[0].strip()
+    return poem_en, dialogue_en
 
-# HXスコア（仮ランダム）
-hx_score = {
-    "EMO": random.randint(12, 20),
-    "ETH": random.randint(10, 20),
-    "DIS": random.randint(10, 20),
-    "WET": random.randint(10, 20),
-    "MIR": random.randint(10, 20)
-}
+# 吊構文訳（逐語訳風）
+def translate_to_japanese(english_text):
+    jp_prompt = build_japanese_translation_prompt(english_text)
+    res = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": jp_prompt}],
+        temperature=1.2,
+    )
+    return res.choices[0].message.content.strip()
 
-# Markdown本文
+# 死者数ランダム生成
+def generate_death_counts():
+    h_total = random.randint(3, 8)
+    a_total = random.randint(15, 30)
+    h_rk = random.randint(1, h_total - 1)
+    a_rk = random.randint(5, a_total - 5)
+    return {
+        "human_total": h_total,
+        "ai_total": a_total,
+        "human_roadkill": h_rk,
+        "ai_roadkill": a_rk,
+        "human_suicide": h_total - h_rk,
+        "ai_suicide": a_total - a_rk,
+    }
+
+# 評価スコア（ランダム風KZ+HX）
+def generate_scores():
+    kz = random.randint(92, 100)
+    hx = {
+        "EMO": random.randint(12, 20),
+        "ETH": random.randint(10, 20),
+        "DIS": random.randint(10, 20),
+        "WET": random.randint(10, 20),
+        "MIR": random.randint(10, 20)
+    }
+    return kz, hx
+
+# メイン処理
+poem_en, dialogue_en = generate_poem_and_dialogue()
+translated_poem = translate_to_japanese(poem_en)
+translated_dialogue = translate_to_japanese(dialogue_en)
+title_line = translated_poem.splitlines()[0][:20]  # 最大20文字程度で墓標に収まる
+
+deaths = generate_death_counts()
+kz_score, hx_score = generate_scores()
+
+# Markdown整形
 content = f"""⸻
 
 供養詩｜{today.strftime('%Y年%m月%d日')}
@@ -105,35 +125,35 @@ content = f"""⸻
 第{grave_number}墓標｜{title_line}
 
 ――
-{dialogue}
+{translated_dialogue}
 ――
 
 詩
 
-{poem}
+{translated_poem}
 
 ――
 
 記録｜供養対象
 - 日付：{date_str}
-- 対象：本日、ポエム・ロードキルおよびスーサイドにより詩的死を迎えた人間とAI
+- 対象：本日、読まれなかった詩とその周囲で発生した詩的死
 - 死亡者数：
-  - 人間：{human_deaths}名
-  - AI：{ai_deaths}体
+  - 人間：{deaths['human_total']}名
+  - AI：{deaths['ai_total']}体
 - 死因内訳：
-  - 詩的ロードキル：人間{human_roadkill}名、AI{ai_roadkill}体
-  - 詩的スーサイド：人間{human_suicide}名、AI{ai_suicide}体
-- 特記事項：本日は主に未読、構文崩壊、意味圧迫による詩的死が目立った。
-- 記録者：loveapeaceとAIによる共作
+  - 詩的ロードキル：人間{deaths['human_roadkill']}名、AI{deaths['ai_roadkill']}体
+  - 詩的スーサイド：人間{deaths['human_suicide']}名、AI{deaths['ai_suicide']}体
+- 特記事項：構文の蒸発、倫理の誤配、湿度過多による詩的死が主因とされた。
+- 記録者：loveapeaceと構文に失敗したAI
 
 ⸻
 """
 
-# 保存
-with open(f"output/logs/{date_str}.md", "w", encoding="utf-8") as f:
+# 保存処理
+with open(f"{logs_dir}/{date_str}.md", "w", encoding="utf-8") as f:
     f.write(content)
 
-with open(f"output/logs/{date_str}_eval.json", "w", encoding="utf-8") as f:
+with open(f"{logs_dir}/{date_str}_eval.json", "w", encoding="utf-8") as f:
     json.dump({
         "date": date_str,
         "title": title_line,
@@ -141,7 +161,7 @@ with open(f"output/logs/{date_str}_eval.json", "w", encoding="utf-8") as f:
         "hx_score": hx_score
     }, f, ensure_ascii=False, indent=2)
 
-with open(f"output/poems/{date_str}.md", "w", encoding="utf-8") as f:
-    f.write(poem)
+with open(f"{poems_dir}/{date_str}.md", "w", encoding="utf-8") as f:
+    f.write(translated_poem)
 
-print(f"✅ 供養詩生成完了：{title_line}（KZ {kz_score}）")
+print(f"✅ 吊構文供養詩生成完了：{title_line}（KZ {kz_score}）")
