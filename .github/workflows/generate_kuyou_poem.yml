@@ -40,7 +40,7 @@ jobs:
         env:
           POEMKUN_TOKEN: ${{ secrets.POEMKUN_TOKEN }}
         run: |
-          curl -X POST https://api.github.com/repos/YOUR_USERNAME/Poemkun-Bot/dispatches \
+          curl -X POST https://api.github.com/repos/groovy1985/poem_kun/dispatches \
           -H "Accept: application/vnd.github.v3+json" \
           -H "Authorization: token $POEMKUN_TOKEN" \
           -d '{"event_type": "post_update_trigger", "client_payload": {"repo": "poem-cemetery", "trigger": "daily-kuyou"}}'
