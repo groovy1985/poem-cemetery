@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  generate:
+  generate_and_post:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,22 +20,15 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
           pip install openai
 
-      - name: Run poem generator
+      - name: Generate Kuyou Poem
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: python main.py
+        run: python generate_kuyou_poem.py  # 詩の生成と保存（output/に）
 
-      - name: Debug output (optional)
-        run: |
-          echo "Listing output/logs/"
-          ls -la output/logs || echo "No output/logs directory found"
-          echo "Listing output/poems/"
-          ls -la output/poems || echo "No output/poems directory found"
-
-      - name: Commit and push
+      - name: Commit and push generated poem
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -43,8 +36,8 @@ jobs:
           git commit -m "add: auto-generated poem for $(date +%Y-%m-%d)" || echo "No changes to commit"
           git push
 
-      - name: Notify Poemkun Bot
-        run: |
-          curl -X POST https://your-server.com/webhook/poemkun \
-            -H "Content-Type: application/json" \
-            -d '{"repo": "poem-cemetery", "trigger": "daily-kuyou"}'
+      - name: Generate and Post via Poemkun Bot
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TWITTER_BEARER_TOKEN: ${{ secrets.TWITTER_BEARER_TOKEN }}
+        run: python generate_post_from_repo.py poem-cemetery daily-kuyou
