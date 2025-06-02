@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  generate_and_post:
+  generate_and_dispatch:
     runs-on: ubuntu-latest
 
     steps:
@@ -26,7 +26,7 @@ jobs:
       - name: Generate Kuyou Poem
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: python generate_kuyou_poem.py  # output/poems/ に .md を生成
+        run: python generate_kuyou_poem.py
 
       - name: Commit and push generated poem
         run: |
@@ -36,8 +36,11 @@ jobs:
           git commit -m "add: auto-generated kuyou poem for $(date +'%Y-%m-%d')" || echo "No changes to commit"
           git push
 
-      - name: Generate and Post via Poemkun Bot
+      - name: Dispatch to Poemkun Bot
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          TWITTER_BEARER_TOKEN: ${{ secrets.TWITTER_BEARER_TOKEN }}
-        run: python generate_post_from_repo.py poem-cemetery daily-kuyou
+          POEMKUN_TOKEN: ${{ secrets.POEMKUN_TOKEN }}
+        run: |
+          curl -X POST https://api.github.com/repos/YOUR_USERNAME/Poemkun-Bot/dispatches \
+          -H "Accept: application/vnd.github.v3+json" \
+          -H "Authorization: token $POEMKUN_TOKEN" \
+          -d '{"event_type": "post_update_trigger", "client_payload": {"repo": "poem-cemetery", "trigger": "daily-kuyou"}}'
